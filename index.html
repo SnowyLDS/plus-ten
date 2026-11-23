@@ -64,12 +64,13 @@
           <canvas id="popIcon" class="slot" width="96" height="96"></canvas>
           <div class="popInfo">
             <div id="popName"></div>
+            <div id="popGripLabel"></div>
             <div id="popGrip" class="num"></div>
-            <div id="popOpts"></div>
             <div id="popNext"></div>
             <div id="popCmp"></div>
           </div>
         </div>
+        <div id="popOpts" class="optBox"></div>
         <div id="popProb"></div>
         <div class="popRows">
           <span id="popCostLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popCost" class="num"></span></span>
@@ -112,6 +113,25 @@
         <div class="setRow"><span class="setIcon"></span><span id="lblSfx" class="setLabel"></span><input type="range" id="rngSfx"><span id="valSfx" class="setVal num"></span></div>
         <div class="setRow"><span class="setIcon"><img id="musicIcon" class="uiIcon" alt=""></span><span id="lblBgm" class="setLabel"></span><input type="range" id="rngBgm"><span id="valBgm" class="setVal num"></span></div>
         <div class="setRow"><label class="setMute"><input type="checkbox" id="chkMute"><span id="lblMute"></span></label><span class="spacer"></span><button id="btnTutReplay" class="btn"></button></div>
+      </div>
+    </div>
+
+    <!-- 장착 무기 상세 창 (6-10 v1.5): 읽기 전용, 닫기 버튼 하나 -->
+    <div id="equipLayer" class="layer" hidden>
+      <div id="equipBox" class="panel">
+        <div id="eqTitle"></div>
+        <div class="eqTop">
+          <div id="eqIcon" class="slot"></div>
+          <div class="eqInfo">
+            <div id="eqPowLabel"></div>
+            <div id="eqPow" class="num"></div>
+            <div id="eqBar"></div>
+          </div>
+        </div>
+        <div id="eqOpts" class="optBox"></div>
+        <div class="optBox"><div id="eqEffHead" class="optHead"></div><div id="eqEffList"></div></div>
+        <div id="eqNote"></div>
+        <div class="popBtns"><button id="btnEqClose" class="btn"></button></div>
       </div>
     </div>
 

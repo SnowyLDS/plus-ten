@@ -38,6 +38,7 @@ const UI = {
     this.buildInventory();
     this.buildPopup();
     this.buildCredits();
+    this.buildEquipDetail();
     document.querySelectorAll('img.coin').forEach(img => this.setIcon(img, 'gold'));
 
     const dirty = () => { this.invDirty = true; };
@@ -90,7 +91,7 @@ const UI = {
   // 6-7 UI 리뉴얼: 하단 패널 3개·모든 팝업 = 이중선 종이 액자, 전투 화면 = 어두운 나무 액자,
   // 버튼 = Tiny Swords 파랑/빨강 그대로 (판매 확인 창의 "판매"는 빨강)
   applySkin() {
-    ['statPanel', 'equipPanel', 'invPanel', 'popup', 'guideBox', 'confirmBox', 'settingsBox', 'creditsBox', 'tutAskBox'].forEach(id => Skin.attach($(id), 'paper'));
+    ['statPanel', 'equipPanel', 'invPanel', 'popup', 'guideBox', 'confirmBox', 'settingsBox', 'creditsBox', 'tutAskBox', 'equipBox'].forEach(id => Skin.attach($(id), 'paper'));
     // v1.4: 전투 화면 테두리는 그리지 않는다 (6-8)
     Skin.attach($('stageRibbon'), 'ribbon');
     $('btnSell').dataset.skin = 'red';
@@ -147,7 +148,8 @@ const UI = {
     this.statEls = {};
     for (const key of CONFIG.STAT_ORDER) {
       const row = document.createElement('div'); row.className = 'statRow';
-      row.innerHTML = `<span class="statIco">${this.iconHtml(CONFIG.UI13.statIcons[key], 32)}</span><div class="statName">${STR.statNames[key]}</div><div class="statVal num"></div><button class="btn statBtn num"></button>`;
+      // 6-12: 스탯 이름 바로 오른쪽에 "Lv.N" (Galmuri11 12px)
+      row.innerHTML = `<span class="statIco">${this.iconHtml(CONFIG.UI13.statIcons[key], 32)}</span><div class="statName">${STR.statNames[key]} <span class="statLv"><span class="lvNum"></span><span class="lvMax"></span></span></div><div class="statVal num"></div><button class="btn statBtn num"></button>`;
       box.appendChild(row);
       const btn = row.querySelector('button');
       let timer = null;
@@ -159,7 +161,7 @@ const UI = {
         timer = setInterval(() => { if (!Combat.buyStat(key)) stop(); }, CONFIG.HOLD_REPEAT_MS);
       });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
-      this.statEls[key] = { val: row.querySelector('.statVal'), btn };
+      this.statEls[key] = { val: row.querySelector('.statVal'), btn, lv: row.querySelector('.lvNum'), max: row.querySelector('.lvMax'), lastLv: null };
     }
     // 3-7: 치명타는 옵션이 있을 때만 한 줄 추가 (구매 버튼 없음)
     const cr = document.createElement('div'); cr.className = 'statRow critRow'; cr.hidden = true;
@@ -183,6 +185,13 @@ const UI = {
     for (const key of CONFIG.STAT_ORDER) {
       const el = this.statEls[key], lv = state.statLv[key];
       const cur = this.statShown(key, lv), suf = this.optSuffix(key);
+      // 6-12: Lv.N, 최대면 " MAX"(#E8B04B). 레벨이 오르면 숫자가 0.2초 동안 1.3배 커졌다 돌아온다
+      if (el.lastLv !== lv) {
+        this.setText(el.lv, STR.statLv(lv));
+        if (el.lastLv !== null && lv > el.lastLv) { el.lv.classList.remove('bump'); void el.lv.offsetWidth; el.lv.classList.add('bump'); }
+        el.lastLv = lv;
+      }
+      this.setText(el.max, Combat.isStatMax(key) ? ' ' + STR.statMax : '');
       if (Combat.isStatMax(key)) {
         this.setHtml(el.val, `${this.statFmt(key, cur)}${suf}`);
         this.setText(el.btn, STR.statMax);
@@ -201,6 +210,14 @@ const UI = {
   // 옵션 뱃지 + 문구 (팝업 줄·툴팁)
   optLine(o) { return STR.optText(o.type, Loot.optionValue(o)); },
   optBadge(o) { return `<span class="tag optTier" style="background:${CONFIG.OPTIONS.tierColor[o.tier]}">${STR.optTierNames[o.tier]}</span>`; },
+  // 6-10: "추가 옵션" 목록 — 장착 무기 상세 창과 인벤토리 무기 상세 팝업이 같은 코드를 쓴다
+  optionsHtml(w) {
+    const opts = (w && w.options) || [];
+    const body = opts.length
+      ? opts.map(o => `<div class="optLine">${this.optBadge(o)}<span>${this.optLine(o)}</span></div>`).join('')
+      : `<div class="optNone">${STR.optNone}</div>`;
+    return `<div class="optHead">${STR.optHeader}</div>${body}`;
+  },
   optTooltip(w) { return (w.options || []).map(o => `[${STR.optTierNames[o.tier]}] ${this.optLine(o)}`).join('\n'); },
   optDots(w) {
     if (!w.options || !w.options.length) return '';
@@ -239,10 +256,12 @@ const UI = {
   renderInventory() {
     // 장착 카드: 칸 72×72, 아이콘 32px(1배)
     const eq = state.equipped, card = $('equipCard');
+    card.classList.toggle('clickable', !!eq);      // 6-10: 누르면 장착 무기 상세 창
     this.applyGradeBorder(card, eq);
     if (eq) {
       card.innerHTML = this.weaponIcon(eq, 32);
-      this.setText($('equipGrip'), `${Loot.grip(eq)}%`);
+      card.title = '';
+      this.setText($('equipGrip'), STR.gripValue(Loot.grip(eq)));
       this.setHtml($('equipName'), `<span style="color:${this.gradeText(eq.grade)}">${Loot.name(eq)}</span> <span class="num">+${eq.level}</span>`);
     } else {
       card.innerHTML = '';
@@ -258,7 +277,7 @@ const UI = {
       c.classList.toggle('enh', !!w && w.id === enhId);
       this.applyGradeBorder(c, w);
       // 툴팁: 깡스탯 + 옵션 목록. 왼쪽 아래 소켓 수만큼 4×4 점(옵션 등급 색)
-      c.title = w ? `${Loot.name(w)} +${w.level} · ${STR.gripLabel} ${Loot.grip(w)}%` + (w.options && w.options.length ? '\n' + this.optTooltip(w) : '') : '';
+      c.title = w ? `${Loot.name(w)} +${w.level} · ${STR.gripLabel} ${STR.gripValue(Loot.grip(w))}` + (w.options && w.options.length ? '\n' + this.optTooltip(w) : '') : '';
       c.innerHTML = w ? this.weaponIcon(w, 32) + `<span class="lv num">+${w.level}</span>` + this.optDots(w) +
         (Loot.isBetter(w) ? '<span class="up">▲</span>' : '') : '';
     }
@@ -303,6 +322,7 @@ const UI = {
     $('btnEquip').textContent = STR.btnEquip;
     $('btnSell').textContent = STR.btnSell;
     $('btnClose').textContent = STR.btnClose;
+    $('popGripLabel').textContent = STR.gripLabel;
     $('popCostLabel').textContent = STR.enhanceCost;
     $('popSellLabel').textContent = STR.sellPrice;
     // 확률 4칸: 같은 너비 격자. 위에 이름(12px), 아래 숫자(24px Bold, 종이용 확률 색)
@@ -337,6 +357,50 @@ const UI = {
     $('btnConfirmYes').addEventListener('click', () => { const f = this._confirmYes; this.closeConfirm(); if (f) f(); });
     $('btnConfirmNo').addEventListener('click', () => this.closeConfirm());
   },
+  // ---------------------------------------------------------------
+  // 6-10 장착 무기 상세 창 (읽기 전용). 강화·판매·해제 버튼은 없다
+  // ---------------------------------------------------------------
+  buildEquipDetail() {
+    $('eqPowLabel').textContent = STR.eqDetailPower;
+    $('eqEffHead').textContent = STR.effectHeader;
+    $('eqNote').textContent = STR.eqDetailNote;
+    $('btnEqClose').textContent = STR.btnClose;
+    $('eqBar').innerHTML = '<span class="eqCells">' + '<i></i>'.repeat(CONFIG.MAX_LEVEL) + '</span><span id="eqBarText"></span>';
+    $('equipCard').addEventListener('click', () => this.openEquipDetail());
+    $('btnEqClose').addEventListener('click', () => this.closeEquipDetail());
+    $('equipLayer').addEventListener('click', (e) => { if (e.target === $('equipLayer')) this.closeEquipDetail(); });   // 창 바깥
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('equipLayer').hidden) this.closeEquipDetail(); });
+  },
+  openEquipDetail() {
+    if (!state.equipped) return;
+    this.renderEquipDetail();
+    $('equipLayer').hidden = false;
+  },
+  closeEquipDetail() { $('equipLayer').hidden = true; },
+  renderEquipDetail() {
+    const w = state.equipped;
+    if (!w) return;
+    // 제목: 등급 + 무기 이름 + 강화 수치 (등급 이름 색, 24px)
+    $('eqTitle').innerHTML = `<span style="color:${this.gradeText(w.grade)}">${Loot.name(w)} +${w.level}</span>`;
+    // 왼쪽: 칸 스타일 아이콘 96×96 (아이콘 2배)
+    const ic = $('eqIcon');
+    this.applyGradeBorder(ic, w);
+    ic.innerHTML = this.iconHtml(CONFIG.UI13.weaponIcons[w.grade], 64, Render.weaponIconURL());
+    // 오른쪽 큰 숫자: 무기 공격력 (36px)
+    $('eqPow').textContent = STR.gripValue(Loot.grip(w));
+    // 강화 수치 막대: 칸 10개 중 달성한 만큼 금색
+    $('eqBar').querySelectorAll('.eqCells i').forEach((c, i) => c.classList.toggle('on', i < w.level));
+    $('eqBarText').textContent = STR.eqDetailLevel(w.level, CONFIG.MAX_LEVEL);
+    // 추가 옵션 (인벤토리 팝업과 같은 코드)
+    $('eqOpts').innerHTML = this.optionsHtml(w);
+    // 지금 적용 중인 효과: 이 무기 덕분에 실제로 바뀐 값
+    const eff = [STR.effAtk(fmtRound(Combat.stat('atk')), fmtRound(Combat.finalAttack()))];
+    if (Combat.optionSum('aspd')) eff.push(STR.effAspd(Combat.stat('aspd').toFixed(CONFIG.ASPD_DECIMALS), Combat.finalAspd().toFixed(CONFIG.ASPD_DECIMALS)));
+    if (Combat.critChance()) eff.push(STR.effCrit(Math.round(Combat.critChance() * 100)));
+    if (Combat.optionSum('def')) eff.push(STR.effDef(Combat.optionSum('def')));
+    $('eqEffList').innerHTML = eff.map(t => `<div>${t}</div>`).join('');
+  },
+
   // 크레딧 (6-7 출처 표기)
   buildCredits() {
     $('creditsTitle').textContent = STR.credits;
@@ -374,15 +438,15 @@ const UI = {
     const locked = Loot.isLocked(w);
     this.applyGradeBorder($('popIcon'), w);
     this.setHtml($('popName'), `<span style="color:${this.gradeText(w.grade)}">${Loot.name(w)}</span> <span class="num">+${w.level}</span>`);
-    this.setText($('popGrip'), `${Loot.grip(w)}%`);
+    this.setText($('popGrip'), STR.gripValue(Loot.grip(w)));
     // 3-7: 깡스탯 아래 소켓 수만큼 줄 (등급 뱃지 + 문구). 비교 줄은 깡스탯만 비교
-    this.setHtml($('popOpts'), (w.options || []).map(o => `<div class="optLine">${this.optBadge(o)}<span>${this.optLine(o)}</span></div>`).join(''));
+    this.setHtml($('popOpts'), this.optionsHtml(w));   // 6-10: 장착 무기 상세 창과 같은 코드
     const maxed = w.level >= CONFIG.MAX_LEVEL;
     if (maxed) {
       this.setText($('popNext'), STR.maxLevel);
     } else {
       const next = Loot.grip({ grade: w.grade, level: w.level + 1 });
-      this.setText($('popNext'), `${STR.nextGrip} +${w.level + 1}: ${next}%`);
+      this.setText($('popNext'), STR.nextGrip(next));
     }
     const probs = maxed ? null : Enhance.probs(w);
     const pvs = $('popProb').querySelectorAll('.pv');
@@ -399,7 +463,7 @@ const UI = {
     const eq = state.equipped, weaker = this.isWeaker(w), U = CONFIG.UI13;
     if (eq) {
       const eg = Loot.grip(eq), mg = Loot.grip(w);
-      this.setHtml($('popCmp'), `<span style="color:${weaker ? U.red : U.green}">${weaker ? '▼' : '▲'} ${STR.cmpLine(eg, mg, mg - eg)}</span>`);
+      this.setHtml($('popCmp'), `<span style="color:${weaker ? U.red : U.green}">${weaker ? '▼' : '▲'} ${STR.cmpLine(mg - eg)}</span>`);
     } else this.setHtml($('popCmp'), '');
     // 2. 버튼 문구 "장착 불가"(v1.3에서 줄임) / 3. 눌러도 안내 (클릭을 받기 위해 disabled 대신 soft-disabled)
     const bq = $('btnEquip');
@@ -424,7 +488,7 @@ const UI = {
   // 게임을 처음 상태로 (튜토리얼 건너뛰기·다시 보기)
   closeAllLayers() {
     this.popId = null;
-    ['popupLayer', 'guideLayer', 'confirmLayer', 'settingsLayer', 'creditsLayer'].forEach(id => { $(id).hidden = true; });
+    ['popupLayer', 'guideLayer', 'confirmLayer', 'settingsLayer', 'creditsLayer', 'equipLayer'].forEach(id => { $(id).hidden = true; });
     this._confirmYes = null;
     this.invDirty = true;
   },

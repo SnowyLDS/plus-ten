@@ -1,4 +1,4 @@
-﻿// =====================================================================
+// =====================================================================
 // debug.js — 디버그 패널과 플레이 로그 (7-5). ` (백쿼트) 키로 켜고 끈다.
 // =====================================================================
 const Debug = {
@@ -236,7 +236,7 @@ const Debug = {
       `골드 사용 스탯 ${fmt(L.goldSpent.stat)} / 강화 ${fmt(L.goldSpent.enhance)} (강화 ${(L.goldSpent.enhanceRatio * 100).toFixed(1)}%)\n` +
       `처치 일반 ${L.kills.mob} / 보스 ${L.kills.boss} · 드롭률 일반 ${L.dropRate.mob === null ? '-' : (L.dropRate.mob * 100).toFixed(1) + '%'} / 보스 ${L.dropRate.boss === null ? '-' : (L.dropRate.boss * 100).toFixed(1) + '%'}\n` +
       `영웅 이상 드롭 ${L.heroicOrBetterDrops} · 패배 ${L.defeats} · 자동 판매 ${L.autoSold}\n` +
-      `H4 장착 깡스탯 감소 ${L.equippedGripDecreases}회 · 최고 스테이지 감소 ${L.bestStageDecreases}회`;
+      `H4 장착 무기 공격력 감소 ${L.equippedGripDecreases}회 · 최고 스테이지 감소 ${L.bestStageDecreases}회`;
   },
 
   update(dt) {
