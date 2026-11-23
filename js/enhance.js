@@ -35,7 +35,7 @@ const Enhance = {
     state.gold -= cost;
     state.log.goldSpent.enhance += cost;
     state.log.enhanceCount++;
-    // 6-9 튜토리얼 예외: 튜토리얼의 강화 2회만 결과를 정해 둔다(1회용). 그 밖에는 항상 4-5 표 판정
+    // 6-9 튜토리얼 예외: 튜토리얼의 강화 1회(6단계)만 성공으로 정해 둔다(1회용). 그 밖에는 항상 4-5 표 판정
     let result;
     if (this.forceNext) { result = this.forceNext; this.forceNext = null; }
     else result = this.roll(w.level, RNG.random());

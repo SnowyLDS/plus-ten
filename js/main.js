@@ -8,7 +8,7 @@ const Game = {
 
   step(dt) {
     state.time += dt;
-    // 6-9: 튜토리얼의 "전투 진행" 단계가 아니면 전투·드롭·골드 획득이 멈춘다 (강화 연출 0.8초는 흐름). QA 격리 실행은 예외
+    // 6-9 (v1.7): 튜토리얼 내내 전투·드롭·골드 획득이 멈춘다 (강화 연출 0.8초는 흐름). QA 격리 실행은 예외
     if (!(Tutorial.combatPaused() && !QA.inSandbox)) Stage.update(dt);
     Enhance.update(dt);
     Debug.watch();

@@ -1,8 +1,8 @@
 // =====================================================================
-// tutorial.js — 따라 하며 배우기 (6-9, v1.4)
+// tutorial.js — 따라 하며 배우기 (6-9, v1.7: 11단계)
 // - 강조된 것을 직접 눌러야 다음으로. 강조 대상 밖의 클릭·누름·키 입력은 document 캡처 단계에서 막는다.
-// - "전투 진행" 단계(2단계)만 전투가 흐르고, 나머지 단계에서는 전투·드롭·골드 획득이 멈춘다(main.js).
-// - 튜토리얼 예외: 단계별 지급(골드·무기), 강화 결과 고정 2회(7단계 성공, 12단계 파괴). 끝나면 4-5 표로 돌아간다.
+// - (v1.7) 튜토리얼 내내 전투·드롭·골드 획득이 멈춰 있고, 끝나면 시작된다(main.js).
+// - 튜토리얼 예외: 단계별 지급(골드·무기), 강화 결과 고정 1회(6단계 성공). 파괴는 없다. 끝나면 4-5 표로 돌아간다.
 // - 단계 정의는 아래 STEPS 배열 하나 (대상 선택자, 대사 키, 지급, 고정 결과, 진행 조건) → 순서를 바꾸기 쉽다.
 // =====================================================================
 const Tutorial = {
@@ -14,23 +14,17 @@ const Tutorial = {
   // 대상: 선택자 문자열 | 함수(→ 요소) | 배열(여러 칸이면 칸마다 따로 구멍). click: 눌러야 할 것. until: 진행 조건
   STEPS: [
     { say: 's1', target: null, until: 'next' },
-    { say: 's2', target: '#battle', combat: true, until: 'kill' },
-    { say: 's3', target: '#goldBadge', give: { gold: true }, until: 'next' },
-    { say: 's4', target: '#statRows .statRow:first-child .statBtn', click: true, until: 'statAtk' },
-    { say: 's5', target: '#equipCard', give: { weapon: { grade: 0, level: 0 }, drop: true }, until: 'next' },
-    { say: 's6', target: () => UI.cells[0], give: { weapon: { grade: 0, level: 0 } }, click: true, until: 'popup' },
-    // v1.6 스포트라이트 규칙: 밝게 뚫는 것은 강조 대상 요소 하나만 (7단계는 [강화] 버튼만)
-    { say: 's7', target: '#btnEnhance', give: { enhanceCost: true }, force: 'success', click: true, until: 'enhanced' },
-    { say: 's8', target: '#btnEquip', click: true, until: 'equip' },
-    { say: 's9', target: '#equipNote', until: 'next' },
-    { say: 's10', target: () => Tutorial.cellOf(Tutorial.practiceId), give: { weapon: { grade: 1, level: 3, practice: true } }, click: true, until: 'popup' },
-    { say: 's11', target: ['#popProb .pc:nth-child(2)', '#popProb .pc:nth-child(3)'], until: 'next' },
-    { say: 's12', target: '#btnEnhance', give: { enhanceCost: true }, force: 'destroy', click: true, until: 'enhanced' },
-    { say: 's13', target: '#equipCard', until: 'next' },
-    { say: 's14', target: '#popSellRow', open: 'invFirst', until: 'next', closeAfter: true },
-    { say: 's15', target: '#stageRibbon', until: 'next' },
-    { say: 's16', target: '#btnChallenge', until: 'next' },
-    { say: 's17', target: null, until: 'start' },
+    { say: 's2', target: '#goldBadge', give: { gold: true }, until: 'next' },
+    { say: 's3', target: '#statRows .statRow:first-child .statBtn', click: true, until: 'statAtk' },
+    { say: 's4', target: '#equipCard', give: { weapon: { grade: 0, level: 0 }, drop: true }, until: 'next' },
+    { say: 's5', target: () => UI.cells[0], give: { weapon: { grade: 0, level: 0 } }, click: true, until: 'popup' },
+    // v1.6 스포트라이트 규칙: 밝게 뚫는 것은 강조 대상 요소 하나만 (6단계는 [강화] 버튼만). v1.7: 결과 성공 고정
+    { say: 's6', target: '#btnEnhance', give: { enhanceCost: true }, force: 'success', click: true, until: 'enhanced' },
+    { say: 's7', target: '#btnEquip', click: true, until: 'equip' },
+    { say: 's8', target: '#equipNote', until: 'next' },
+    { say: 's9', target: '#stageRibbon', until: 'next' },
+    { say: 's10', target: '#btnChallenge', until: 'next' },
+    { say: 's11', target: null, until: 'start' },
   ],
 
   // ---------------------------------------------------------------
@@ -40,8 +34,8 @@ const Tutorial = {
   saveDone() {
     try { window.localStorage.setItem(CONFIG.TUTORIAL.storageKey, 'true'); } catch (e) { /* 무시 */ }
   },
-  // main.js: 이 단계에서 전투가 흐르는가
-  combatPaused() { return this.active && !(this.step() && this.step().combat); },
+  // main.js: (v1.7) 튜토리얼 내내 전투가 멈춘다
+  combatPaused() { return this.active; },
   step() { return this.STEPS[this.i] || null; },
   cellOf(id) { const k = state.inventory.findIndex(w => w.id === id); return k >= 0 ? UI.cells[k] : null; },
 
@@ -69,7 +63,6 @@ const Tutorial = {
       document.addEventListener(t, block, { capture: true, passive: false }));
 
     // 진행 조건
-    Events.on('monsterKilled', () => this.cond('kill'));
     Events.on('statBought', (e) => { if (e.key === 'atk') this.cond('statAtk'); });
     Events.on('popupOpened', () => this.cond('popup'));
     Events.on('equipChanged', () => this.cond('equip'));
@@ -117,7 +110,6 @@ const Tutorial = {
     if (g.weapon) {
       const w = Loot.createWeapon(g.weapon.grade);       // 일반·고급 → 옵션 없음 (3-7)
       w.level = g.weapon.level;
-      if (g.weapon.practice) { w.label = STR.tut.practiceSword; this.practiceId = w.id; }
       if (g.drop) Events.emit('weaponDropped', { weapon: w, isBoss: false });   // 드롭 연출 재생
       Loot.addWeapon(w);
     }
@@ -142,7 +134,7 @@ const Tutorial = {
     if (s.closeAfter) UI.closeWeapon();
     this.go(this.i + 1);
   },
-  // 17단계 [시작]: 튜토리얼 종료, 전투 재개, tutorialDone 저장. 시간 지표는 여기서부터 잰다
+  // 11단계 [시작]: 튜토리얼 종료, 전투 재개, tutorialDone 저장. 시간 지표는 여기서부터 잰다
   finish() {
     this.end();
     this.saveDone();
