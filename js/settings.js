@@ -38,11 +38,11 @@ const Settings = {
     for (const id of ['rngSfx', 'rngBgm']) { const r = $(id); r.min = CONFIG.SETTINGS.min; r.max = CONFIG.SETTINGS.max; r.step = 1; }
 
     $('btnSettings').addEventListener('click', () => this.open());
-    // 6-9 [튜토리얼 다시 보기]: 확인 후 게임을 초기화하고 튜토리얼을 다시 시작
-    $('btnTutReplay').textContent = STR.tut.replay;
-    $('btnTutReplay').addEventListener('click', () => {
+    // v1.6 [처음부터 다시하기] (빨간 버튼): 확인 후 게임 초기화 + tutorialDone 삭제 → 튜토리얼부터. 소리 설정은 유지
+    $('btnRestart').textContent = STR.restart;
+    $('btnRestart').addEventListener('click', () => {
       this.close();
-      UI.confirm(STR.tut.replayAsk, () => Tutorial.replay(), STR.tut.replayYes, STR.tut.replayNo);
+      UI.confirm(STR.restartAsk, () => Tutorial.restartFromScratch(), STR.restartYes, STR.restartNo);
     });
     $('btnSetClose').addEventListener('click', () => this.close());
     // 창 바깥 클릭 (어두운 배경 + 화면 비율 때문에 생긴 바깥 여백까지)

@@ -73,8 +73,8 @@
         <div id="popOpts" class="optBox"></div>
         <div id="popProb"></div>
         <div class="popRows">
-          <span id="popCostLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popCost" class="num"></span></span>
-          <span id="popSellLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popSell" class="num"></span></span>
+          <div id="popCostRow" class="popRow2"><span id="popCostLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popCost" class="num"></span></span></div>
+          <div id="popSellRow" class="popRow2"><span id="popSellLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popSell" class="num"></span></span></div>
         </div>
         <div id="popResult"></div>
         <div class="popBtns">
@@ -112,7 +112,7 @@
         <div class="setHead"><span id="setTitle"></span><button id="btnSetClose" class="roundBtn"><span class="fb">✕</span></button></div>
         <div class="setRow"><span class="setIcon"></span><span id="lblSfx" class="setLabel"></span><input type="range" id="rngSfx"><span id="valSfx" class="setVal num"></span></div>
         <div class="setRow"><span class="setIcon"><img id="musicIcon" class="uiIcon" alt=""></span><span id="lblBgm" class="setLabel"></span><input type="range" id="rngBgm"><span id="valBgm" class="setVal num"></span></div>
-        <div class="setRow"><label class="setMute"><input type="checkbox" id="chkMute"><span id="lblMute"></span></label><span class="spacer"></span><button id="btnTutReplay" class="btn"></button></div>
+        <div class="setRow"><label class="setMute"><input type="checkbox" id="chkMute"><span id="lblMute"></span></label><span class="spacer"></span><button id="btnRestart" class="btn" data-skin="red"></button></div>
       </div>
     </div>
 
@@ -148,8 +148,8 @@
 
     <!-- 튜토리얼 (6-9 v1.4): 어둡게 덮기 + 스포트라이트 + 화살표 + 말풍선 -->
     <div id="tut" hidden>
-      <div id="tutDim"></div>
-      <div id="tutHole" hidden></div>
+      <canvas id="tutDim"></canvas>
+      <div id="tutHoles"></div>
       <div id="tutArrow" hidden>▼</div>
       <div id="tutBubble"><img id="tutAvatar" alt=""><div class="tutBody"><div id="tutText"></div><div class="tutBtns"><button id="tutNext" class="btn"></button></div></div></div>
       <button id="tutSkip" class="btn"></button>

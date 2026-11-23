@@ -463,7 +463,9 @@ const UI = {
     const eq = state.equipped, weaker = this.isWeaker(w), U = CONFIG.UI13;
     if (eq) {
       const eg = Loot.grip(eq), mg = Loot.grip(w);
-      this.setHtml($('popCmp'), `<span style="color:${weaker ? U.red : U.green}">${weaker ? '▼' : '▲'} ${STR.cmpLine(mg - eg)}</span>`);
+      // v1.6: 차이가 0이면 ▲▼ 없이 "장착 무기와 공격력 같음" (±0% 표기 금지)
+      if (mg === eg) this.setHtml($('popCmp'), `<span style="color:${U.sub}">${STR.cmpSame}</span>`);
+      else this.setHtml($('popCmp'), `<span style="color:${weaker ? U.red : U.green}">${weaker ? '▼' : '▲'} ${STR.cmpLine(mg - eg)}</span>`);
     } else this.setHtml($('popCmp'), '');
     // 2. 버튼 문구 "장착 불가"(v1.3에서 줄임) / 3. 눌러도 안내 (클릭을 받기 위해 disabled 대신 soft-disabled)
     const bq = $('btnEquip');

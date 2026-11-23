@@ -106,7 +106,8 @@ const STR = {
   qaSigBDead: (d) => `B 공격력형의 체력 0 패배가 판당 ${d.toFixed(2)}회 → 체력·방어력이 필요 없는 스탯이라는 신호`,
 
   // 장착 불가 안내 (5장 v1.1, 6-11 문구)
-  cmpLine: (diff) => `장착 무기보다 공격력 ${diff > 0 ? '+' : diff < 0 ? '−' : '±'}${Math.abs(diff)}%`,
+  cmpLine: (diff) => `장착 무기보다 공격력 ${diff > 0 ? '+' : '−'}${Math.abs(diff)}%`,
+  cmpSame: '장착 무기와 공격력 같음',      // v1.6: 차이가 0이면 ▲▼ 없이
   equipWeaker: '장착 불가',
   equipBlockedToast: () => '장착 무기보다 공격력이 낮아서 끼울 수 없어요',
   guideText: '장착한 무기는 강화·판매할 수 없고 더 약한 무기로 바꿀 수도 없어요. 인벤토리 무기로 마음껏 강화해도 지금 전투력은 절대 줄어들지 않아요.',
@@ -173,11 +174,13 @@ const STR = {
     skipYes: '건너뛰기',
     skipNo: '계속하기',
     practiceSword: '연습용 검',
-    replay: '튜토리얼 다시 보기',
-    replayAsk: '처음부터 다시 시작할게요',
-    replayYes: '다시 시작',
-    replayNo: '취소',
   },
+
+  // 설정 창 [처음부터 다시하기] (v1.6)
+  restart: '처음부터 다시하기',
+  restartAsk: '지금까지의 진행이 모두 사라져요. 처음부터 다시 할까요?',
+  restartYes: '다시하기',
+  restartNo: '취소',
 
   // 크레딧 (6-7 출처 표기, v1.5 제작자 표기)
   credits: '크레딧',

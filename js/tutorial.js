@@ -11,7 +11,7 @@ const Tutorial = {
   shown: 0,               // 타이핑된 글자 수
   waiting: false,         // 결과 연출 대기 중 (입력 모두 잠금)
 
-  // 대상: 선택자 문자열 | 함수(→ 요소) | 배열(여러 개 합친 사각형). click: 눌러야 할 것. until: 진행 조건
+  // 대상: 선택자 문자열 | 함수(→ 요소) | 배열(여러 칸이면 칸마다 따로 구멍). click: 눌러야 할 것. until: 진행 조건
   STEPS: [
     { say: 's1', target: null, until: 'next' },
     { say: 's2', target: '#battle', combat: true, until: 'kill' },
@@ -19,14 +19,15 @@ const Tutorial = {
     { say: 's4', target: '#statRows .statRow:first-child .statBtn', click: true, until: 'statAtk' },
     { say: 's5', target: '#equipCard', give: { weapon: { grade: 0, level: 0 }, drop: true }, until: 'next' },
     { say: 's6', target: () => UI.cells[0], give: { weapon: { grade: 0, level: 0 } }, click: true, until: 'popup' },
-    { say: 's7', target: ['#btnEnhance', '#popProb'], clickSel: '#btnEnhance', give: { enhanceCost: true }, force: 'success', click: true, until: 'enhanced' },
+    // v1.6 스포트라이트 규칙: 밝게 뚫는 것은 강조 대상 요소 하나만 (7단계는 [강화] 버튼만)
+    { say: 's7', target: '#btnEnhance', give: { enhanceCost: true }, force: 'success', click: true, until: 'enhanced' },
     { say: 's8', target: '#btnEquip', click: true, until: 'equip' },
     { say: 's9', target: '#equipNote', until: 'next' },
     { say: 's10', target: () => Tutorial.cellOf(Tutorial.practiceId), give: { weapon: { grade: 1, level: 3, practice: true } }, click: true, until: 'popup' },
     { say: 's11', target: ['#popProb .pc:nth-child(2)', '#popProb .pc:nth-child(3)'], until: 'next' },
     { say: 's12', target: '#btnEnhance', give: { enhanceCost: true }, force: 'destroy', click: true, until: 'enhanced' },
     { say: 's13', target: '#equipCard', until: 'next' },
-    { say: 's14', target: ['#popSellLabel', '#popSell'], open: 'invFirst', until: 'next', closeAfter: true },
+    { say: 's14', target: '#popSellRow', open: 'invFirst', until: 'next', closeAfter: true },
     { say: 's15', target: '#stageRibbon', until: 'next' },
     { say: 's16', target: '#btnChallenge', until: 'next' },
     { say: 's17', target: null, until: 'start' },
@@ -164,11 +165,49 @@ const Tutorial = {
     document.getElementById('tut').hidden = true;
     document.getElementById('tutAsk').hidden = true;
   },
-  // 설정 창 [튜토리얼 다시 보기]: 게임 초기화 후 다시
-  replay() {
+  // v1.6 설정 창 [처음부터 다시하기]: 게임 초기화 + tutorialDone 삭제 → 튜토리얼부터 다시. 소리 설정(별도 저장)은 그대로
+  restartFromScratch() {
     this.end();
+    try { window.localStorage.removeItem(CONFIG.TUTORIAL.storageKey); } catch (e) { /* 무시 */ }
     Game.restart();
     this.start();
+  },
+
+  // 논리 사각형 b 안에 화면 글자가 있는가 (화살표가 글자를 가리는지). 튜토리얼 자신·배경·빈 틀은 무시
+  coversText(b, rr, sc) {
+    // 화면 좌표의 화살표 사각형
+    const S = { l: rr.left + b.l * sc, t: rr.top + b.t * sc, r: rr.left + b.r * sc, b: rr.top + b.b * sc };
+    const pts = [[0.5, 0.5], [0.1, 0.2], [0.9, 0.2], [0.1, 0.85], [0.9, 0.85], [0.5, 0.1], [0.5, 0.9]];
+    const seen = new Set();
+    for (const [fx, fy] of pts) {
+      const x = S.l + (S.r - S.l) * fx, y = S.t + (S.b - S.t) * fy;
+      // 실제로 보이는 맨 위 요소만 본다 (팝업 아래에 깔린 패널 글자는 가려져 있으므로 세지 않음)
+      const top = document.elementsFromPoint(x, y).find(el => !el.closest('#tut'));
+      if (!top || seen.has(top) || top.tagName === 'CANVAS' || top === document.body || top === document.documentElement) continue;
+      seen.add(top);
+      // 요소 상자가 아니라 실제 글자 영역(Range)과 겹치는지
+      for (const n of top.childNodes) {
+        if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+        const rg = document.createRange(); rg.selectNodeContents(n);
+        for (const q of rg.getClientRects()) if (q.left < S.r && q.right > S.l && q.top < S.b && q.bottom > S.t) return true;
+      }
+    }
+    return false;
+  },
+  // 디버그 검사 (6-9 검수): 밝은 영역이 대상 요소 사각형 + 여백 8px보다 크지 않은가, 구멍 수 = 대상 수, 화살표가 글자·대상을 가리지 않는가
+  debugCheck() {
+    const s = this.step(); if (!s) return null;
+    const els = this.resolve(s.target).filter(el => el.getClientRects().length && el.offsetParent !== null);
+    const sc = UI.scale || 1, rr = document.getElementById('root').getBoundingClientRect(), p = CONFIG.TUTORIAL.holePad;
+    const holes = this.holes || [];
+    const sizeOk = holes.length === els.length && els.every((el, i) => {
+      const r = el.getBoundingClientRect(), h = holes[i];
+      const w = (r.width / sc) + 2 * p, hh = (r.height / sc) + 2 * p;
+      return (h.r - h.l) <= w + 0.5 && (h.b - h.t) <= hh + 0.5;
+    });
+    const a = this.arrowBox;
+    const arrowOk = !a || (!this.coversText(a, rr, sc) && !holes.some(h => a.l < h.r && a.r > h.l && a.t < h.b && a.b > h.t));
+    return { step: this.i + 1, targets: els.length, holes: holes.length, sizeOk, arrowOk };
   },
 
   // ---------------------------------------------------------------
@@ -181,36 +220,60 @@ const Tutorial = {
     const text = STR.tut[s.say];
     UI.setText($('tutText'), text.slice(0, Math.floor(this.shown)));
 
-    // 논리 좌표(#root 기준)로 바꾼 대상 사각형 (여러 개면 합친 것)
+    // v1.6 스포트라이트 규칙: 강조 대상 요소마다 따로 (부모 영역·합친 사각형 없음). 논리 좌표(#root 기준)
     const els = this.resolve(s.target).filter(el => el.getClientRects().length && el.offsetParent !== null);
-    const sc = UI.scale || 1, rr = document.getElementById('root').getBoundingClientRect();
-    let box = null;
-    for (const el of els) {
-      const r = el.getBoundingClientRect();
-      const b = { l: (r.left - rr.left) / sc, t: (r.top - rr.top) / sc, r: (r.right - rr.left) / sc, b: (r.bottom - rr.top) / sc };
-      box = box ? { l: Math.min(box.l, b.l), t: Math.min(box.t, b.t), r: Math.max(box.r, b.r), b: Math.max(box.b, b.b) } : b;
-    }
-    const hole = $('tutHole'), dim = $('tutDim'), arrow = $('tutArrow'), bub = $('tutBubble');
-    if (box) {
-      const p = C.holePad;
-      Object.assign(hole.style, { left: (box.l - p) + 'px', top: (box.t - p) + 'px', width: (box.r - box.l + 2 * p) + 'px', height: (box.b - box.t + 2 * p) + 'px' });
-      hole.hidden = false; dim.hidden = true; arrow.hidden = false;
-      arrow.style.left = ((box.l + box.r) / 2 - 20) + 'px';
-      arrow.style.top = (box.t - p - 34) + 'px';
-    } else {
-      hole.hidden = true; dim.hidden = false; arrow.hidden = true;
-    }
-    // 말풍선: 강조 대상을 가리지 않게 위 또는 아래, 대상이 없으면 화면 가운데
+    const sc = UI.scale || 1, rr = document.getElementById('root').getBoundingClientRect(), p = C.holePad;
+    const toLogic = (r) => ({ l: (r.left - rr.left) / sc, t: (r.top - rr.top) / sc, r: (r.right - rr.left) / sc, b: (r.bottom - rr.top) / sc });
+    const holes = els.map(el => { const b = toLogic(el.getBoundingClientRect()); return { l: b.l - p, t: b.t - p, r: b.r + p, b: b.b + p }; });
+    this.holes = holes;
     const root = document.getElementById('root');
     const wl = parseFloat(root.style.getPropertyValue('--wl')) || 0, wt = parseFloat(root.style.getPropertyValue('--wt')) || 0;
     const ww = parseFloat(root.style.getPropertyValue('--ww')) || CONFIG.BASE_W, wh = parseFloat(root.style.getPropertyValue('--wh')) || CONFIG.BASE_H;
-    const bw = bub.offsetWidth, bh = bub.offsetHeight, gap = 16;
+
+    // 어둡게 덮기: 창 전체 검정 60%를 그리고 구멍마다 지운다
+    const dim = $('tutDim'), dpr = window.devicePixelRatio || 1, cw = Math.round(ww * sc * dpr), ch = Math.round(wh * sc * dpr);
+    if (dim.width !== cw || dim.height !== ch) { dim.width = cw; dim.height = ch; }
+    const g = dim.getContext('2d'), k = sc * dpr;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cw, ch);
+    g.fillStyle = `rgba(0,0,0,${C.dim})`; g.fillRect(0, 0, cw, ch);
+    g.setTransform(k, 0, 0, k, -wl * k, -wt * k);
+    for (const h of holes) g.clearRect(h.l, h.t, h.r - h.l, h.b - h.t);
+    // 구멍 테두리 (#E8B04B 3px, 1초 주기)
+    const hb = $('tutHoles');
+    while (hb.children.length < holes.length) { const d = document.createElement('div'); d.className = 'tutHole'; hb.appendChild(d); }
+    [...hb.children].forEach((d, i) => {
+      const h = holes[i]; d.hidden = !h;
+      if (h) Object.assign(d.style, { left: h.l + 'px', top: h.t + 'px', width: (h.r - h.l) + 'px', height: (h.b - h.t) + 'px' });
+    });
+
+    // 화살표: 밝은 대상의 위쪽 바깥 가운데(▼). 다른 글자를 가리면 아래쪽 바깥(▲)
+    const arrow = $('tutArrow'), bub = $('tutBubble'), AW = 28, AH = 20;   // 화살표 글자 크기만큼
+    let arrowBox = null;
+    if (holes.length) {
+      const u = holes.reduce((a, h) => ({ l: Math.min(a.l, h.l), t: Math.min(a.t, h.t), r: Math.max(a.r, h.r), b: Math.max(a.b, h.b) }));
+      // 후보: 위 가운데(▼) → 아래 가운데(▲) → 대상 왼쪽·오른쪽 끝의 위·아래. 글자·구멍을 가리지 않는 첫 자리
+      const at = (cx, down) => ({ l: cx - AW / 2, t: down ? u.b + 1 : u.t - AH - 1, r: cx + AW / 2, b: down ? u.b + 1 + AH : u.t - 1, down });
+      const cx = (u.l + u.r) / 2, lx = u.l + AW / 2 + 4, rx = u.r - AW / 2 - 4;
+      const cands = [at(cx, false), at(cx, true), at(lx, false), at(rx, false), at(lx, true), at(rx, true)];
+      const free = (b) => !this.coversText(b, rr, sc) && !holes.some(h => b.l < h.r && b.r > h.l && b.t < h.b && b.b > h.t);
+      arrowBox = cands.find(free) || cands[0];
+      arrow.textContent = arrowBox.down ? '▲' : '▼';
+      arrow.style.left = arrowBox.l + 'px'; arrow.style.top = arrowBox.t + 'px';
+      arrow.hidden = false;
+    } else arrow.hidden = true;
+    this.arrowBox = arrowBox;
+
+    // 말풍선: 대상과 화살표를 가리지 않는 쪽(아래 또는 위), 대상이 없으면 화면 가운데
+    const bw = bub.offsetWidth, bh = bub.offsetHeight, gap = 12;
     let x, y;
-    if (!box) { x = wl + (ww - bw) / 2; y = wt + (wh - bh) / 2; }
+    if (!holes.length) { x = wl + (ww - bw) / 2; y = wt + (wh - bh) / 2; }
     else {
-      x = Math.max(wl + 12, Math.min(wl + ww - bw - 12, (box.l + box.r) / 2 - bw / 2));
-      const below = box.b + C.holePad + gap, above = box.t - C.holePad - 40 - gap - bh;
-      y = (below + bh <= wt + wh - 12) ? below : Math.max(wt + 12, above);
+      const occ = [...holes, arrowBox].reduce((a, h) => ({ l: Math.min(a.l, h.l), t: Math.min(a.t, h.t), r: Math.max(a.r, h.r), b: Math.max(a.b, h.b) }));
+      x = Math.max(wl + 12, Math.min(wl + ww - bw - 12, (occ.l + occ.r) / 2 - bw / 2));
+      const below = occ.b + gap, above = occ.t - gap - bh;
+      if (below + bh <= wt + wh - 12) y = below;
+      else if (above >= wt + 12) y = above;
+      else { y = Math.max(wt + 12, Math.min(wt + wh - bh - 12, (occ.t + occ.b) / 2 - bh / 2)); x = occ.l - bw - gap >= wl + 12 ? occ.l - bw - gap : occ.r + gap; }
     }
     // [건너뛰기] 버튼과 겹치면 말풍선을 버튼 왼쪽으로 비켜 놓는다 (안 되면 버튼 아래로)
     const sk = $('tutSkip').getBoundingClientRect();

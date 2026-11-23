@@ -162,7 +162,9 @@ canvas.skin { position: absolute; z-index: -1; pointer-events: none; image-rende
 #popProb .pn { font: 12px Galmuri11, sans-serif; color: #8A6A4A; }
 #popProb .pv { font: bold 24px Galmuri11, sans-serif; line-height: 28px; }
 /* 강화 비용·판매가: 왼쪽 항목명, 오른쪽 금화 + 숫자, 두 줄 같은 열 */
-.popRows { display: grid; grid-template-columns: 1fr auto; row-gap: 4px; align-items: center; }
+.popRows { display: flex; flex-direction: column; gap: 4px; }
+/* 비용·판매가 줄은 줄마다 요소 하나 (튜토리얼 14단계 강조 대상). 항목명 왼쪽, 금화+숫자 오른쪽 같은 열 */
+.popRow2 { display: grid; grid-template-columns: 1fr auto; align-items: center; }
 .popRows .lab { font: 12px Galmuri11, sans-serif; color: #8A6A4A; }
 .popRows .val { display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: #3B2A1A; }
 .coin { width: 24px; height: 24px; image-rendering: pixelated; display: none; }
@@ -205,12 +207,14 @@ canvas.skin { position: absolute; z-index: -1; pointer-events: none; image-rende
 /* ---------- 튜토리얼 (6-9 v1.4): 검정 60% + 스포트라이트 구멍(대상 + 8px), 금색 3px 테두리 1초 주기 ---------- */
 #tut { position: absolute; left: var(--wl, 0px); top: var(--wt, 0px); width: var(--ww, 1280px); height: var(--wh, 720px); z-index: 60; pointer-events: none; }
 #tut > * { position: absolute; }
-#tutDim { inset: 0; background: rgba(0, 0, 0, 0.6); }
+/* v1.6: 어둡게 덮기는 캔버스 한 장에 그리고, 강조 대상마다 따로 구멍을 뚫는다 */
+#tutDim { left: 0; top: 0; width: 100%; height: 100%; }
+#tutHoles { left: 0; top: 0; }
 /* #tut는 창 전체 사각형에 놓이므로, 구멍·화살표·말풍선은 #root 논리 좌표에서 창 원점만큼 되돌려 놓는다 */
-#tutHole, #tutArrow, #tutBubble { transform: translate(calc(-1 * var(--wl, 0px)), calc(-1 * var(--wt, 0px))); }
-#tutHole { box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.6); border: 3px solid #E8B04B; animation: tutPulse 1s ease-in-out infinite; }
+.tutHole, #tutArrow, #tutBubble { transform: translate(calc(-1 * var(--wl, 0px)), calc(-1 * var(--wt, 0px))); }
+.tutHole { position: absolute; border: 3px solid #E8B04B; animation: tutPulse 1s ease-in-out infinite; }
 @keyframes tutPulse { 0%,100% { border-color: rgba(232,176,75,1); } 50% { border-color: rgba(232,176,75,.35); } }
-#tutArrow { width: 40px; text-align: center; font: bold 24px Galmuri11, sans-serif; color: #E8B04B; line-height: 24px;
+#tutArrow { width: 28px; height: 20px; overflow: visible; text-align: center; font: bold 24px Galmuri11, sans-serif; color: #E8B04B; line-height: 20px;
   text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000; animation: tutBob 0.6s ease-in-out infinite; }
 #tutArrow::before { content: ''; }
 @keyframes tutBob { 0%,100% { margin-top: 0; } 50% { margin-top: 6px; } }
