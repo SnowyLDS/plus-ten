@@ -1,0 +1,6 @@
+# 기획서는 올리지 않음
+*.md
+!README.md
+# 원본 편집 파일·맥 시스템 파일
+*.aseprite
+.DS_Store

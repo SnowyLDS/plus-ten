@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLUS TEN</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- v1.4 6-8: 화면 전체 배경 (창 전체, 맨 아래 층) -->
+<canvas id="world"></canvas>
+<div id="viewport">
+  <div id="root">
+    <div id="shake">
+      <!-- 상단 HUD (v1.4 6-8: 띠 없이 잔디 위에 떠 있음) -->
+      <header id="hud">
+        <div id="hudStage"><span id="stageRibbon"></span><span id="stageBoss" class="tag tagBoss" hidden></span></div>
+        <div id="hudFarm" class="tag tagFarm" hidden></div>
+        <div class="spacer"></div>
+        <div id="goldBadge"><img id="goldIcon" alt=""><span id="hudGold" class="num"></span></div>
+        <button id="btnChallenge" class="btn"></button>
+        <button id="btnSettings" class="roundBtn"><span class="fb">⚙</span></button>
+      </header>
+
+      <!-- 전투 영역 (보기 전용, 바탕 투명 — 배경은 #world) -->
+      <canvas id="battle" width="1280" height="344"></canvas>
+
+      <!-- 하단 조작 영역: 종이 액자 패널 3개 -->
+      <section id="bottom">
+        <div id="statPanel" class="panel">
+          <h2 id="statTitle"></h2>
+          <div id="statRows"></div>
+        </div>
+        <div id="equipPanel" class="panel">
+          <h2 id="equipTitle"></h2>
+          <div id="equipBody">
+            <div id="equipCard" class="slot"></div>
+            <div id="equipGrip" class="num"></div>
+            <div id="equipName"></div>
+          </div>
+          <div id="equipNote"></div>
+        </div>
+        <div id="invPanel" class="panel">
+          <div class="invHead">
+            <h2 id="invTitle"></h2><span id="invDot" class="dot" hidden></span><span id="invCount" class="num"></span>
+          </div>
+          <div id="invGrid"></div>
+          <div class="invFoot">
+            <button id="btnBulk" class="btn"></button>
+            <button id="btnCredits" class="btn"></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 연출 오버레이 (클릭 통과) -->
+    <canvas id="fx" width="1280" height="720"></canvas>
+
+    <!-- 무기 상세 팝업 -->
+    <div id="popupLayer" class="layer" hidden>
+      <div id="popup" class="panel">
+        <div class="popTop">
+          <canvas id="popIcon" class="slot" width="96" height="96"></canvas>
+          <div class="popInfo">
+            <div id="popName"></div>
+            <div id="popGrip" class="num"></div>
+            <div id="popOpts"></div>
+            <div id="popNext"></div>
+            <div id="popCmp"></div>
+          </div>
+        </div>
+        <div id="popProb"></div>
+        <div class="popRows">
+          <span id="popCostLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popCost" class="num"></span></span>
+          <span id="popSellLabel" class="lab"></span><span class="val"><img class="coin" alt=""><span id="popSell" class="num"></span></span>
+        </div>
+        <div id="popResult"></div>
+        <div class="popBtns">
+          <button id="btnEnhance" class="btn"></button>
+          <button id="btnEquip" class="btn"></button>
+          <button id="btnSell" class="btn"></button>
+          <button id="btnClose" class="btn"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 처음 한 번 규칙 안내 (5장 v1.1 장착 불가 안내 4번) -->
+    <div id="guideLayer" class="layer" hidden>
+      <div id="guideBox" class="panel">
+        <div id="guideTitle"><img id="guideIcon" class="uiIcon" alt=""><span id="guideTitleText"></span></div>
+        <div id="guideText"></div>
+        <div class="popBtns"><button id="btnGuideOk" class="btn"></button></div>
+      </div>
+    </div>
+
+    <!-- 판매 확인 창 (3-6 경우에만) -->
+    <div id="confirmLayer" class="layer" hidden>
+      <div id="confirmBox" class="panel">
+        <div id="confirmText"></div>
+        <div class="popBtns">
+          <button id="btnConfirmYes" class="btn danger"></button>
+          <button id="btnConfirmNo" class="btn"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설정 창 (6-6 v1.2): 게임은 멈추지 않는다 -->
+    <div id="settingsLayer" class="layer" hidden>
+      <div id="settingsBox" class="panel">
+        <div class="setHead"><span id="setTitle"></span><button id="btnSetClose" class="roundBtn"><span class="fb">✕</span></button></div>
+        <div class="setRow"><span class="setIcon"></span><span id="lblSfx" class="setLabel"></span><input type="range" id="rngSfx"><span id="valSfx" class="setVal num"></span></div>
+        <div class="setRow"><span class="setIcon"><img id="musicIcon" class="uiIcon" alt=""></span><span id="lblBgm" class="setLabel"></span><input type="range" id="rngBgm"><span id="valBgm" class="setVal num"></span></div>
+        <div class="setRow"><label class="setMute"><input type="checkbox" id="chkMute"><span id="lblMute"></span></label><span class="spacer"></span><button id="btnTutReplay" class="btn"></button></div>
+      </div>
+    </div>
+
+    <!-- 크레딧 (6-7 출처 표기) -->
+    <div id="creditsLayer" class="layer" hidden>
+      <div id="creditsBox" class="panel">
+        <h2 id="creditsTitle"></h2>
+        <ul id="creditsList"></ul>
+        <div class="popBtns"><button id="btnCreditsClose" class="btn"></button></div>
+      </div>
+    </div>
+
+    <div id="toasts"></div>
+
+    <!-- 튜토리얼 (6-9 v1.4): 어둡게 덮기 + 스포트라이트 + 화살표 + 말풍선 -->
+    <div id="tut" hidden>
+      <div id="tutDim"></div>
+      <div id="tutHole" hidden></div>
+      <div id="tutArrow" hidden>▼</div>
+      <div id="tutBubble"><img id="tutAvatar" alt=""><div class="tutBody"><div id="tutText"></div><div class="tutBtns"><button id="tutNext" class="btn"></button></div></div></div>
+      <button id="tutSkip" class="btn"></button>
+      <div id="tutAsk" hidden><div id="tutAskBox" class="panel"><div id="tutAskText"></div><div class="popBtns"><button id="tutAskYes" class="btn" data-skin="red"></button><button id="tutAskNo" class="btn"></button></div></div></div>
+    </div>
+
+    <!-- 디버그 패널 (` 키) -->
+    <div id="debug" class="panel" hidden></div>
+  </div>
+</div>
+
+<!-- ES 모듈 금지: 일반 script 태그를 순서대로 -->
+<script src="js/config.js"></script>
+<script src="js/strings.js"></script>
+<script src="js/state.js"></script>
+<script src="js/rng.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/loot.js"></script>
+<script src="js/enhance.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/render.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/bgm.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/qa.js"></script>
+<script src="js/debug.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
